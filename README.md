@@ -24,3 +24,23 @@ Put this file in: `config/mobsbegone-blacklist.json` (The default config already
   "minecraft:enderman",
   "anothermod:somebaka"
 ]
+```
+
+And that's it! Those mobs will never appear in your world again. 💣💥
+
+## ⚠️ Disclaimer
+
+This mod is provided **as-is**.
+
+You're free to use it, modify it, fork it, or yell at it lovingly.  
+No guarantees, no warranties — just vibes. ✨
+
+## ✨ Credit
+
+Made with love by **Okaeri Game Studio** 💜
+
+**Authors:** Olivia, EasyMochi
+
+---
+
+Enjoy the peace and quiet of a mob-free world! 🌸
