@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "mobsbegone",
+  "version": "${version}",
+  "name": "MobsBeGone",
+  "description": "MobsBeGone let you control which entity should or shouldn't spawn in the world.",
+  "authors": ["Olivia", "EasyMochi"],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "server",
+  "entrypoints": {
+	"main": [
+	  "moe.okaeri.mobsbegone.MobsBeGone"
+	]
+  },
+  "mixins": [
+	"mobsbegone.mixins.json"
+  ],
+  "depends": {
+	"fabricloader": ">=${loader_version}",
+	"fabric": "*",
+	"fabric-api": "*",
+	"minecraft": "${minecraft_version}"
+  }
+}
