@@ -2,6 +2,7 @@ package moe.okaeri.mobsbegone;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 import net.minecraft.entity.Entity;
@@ -19,22 +20,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MobsBeGone implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("mobsbegone");
-	private static boolean[] BLACKLIST;
+	private static long[] BLACKLIST;
 	public static final Set<Entity> TO_REMOVE = ConcurrentHashMap.newKeySet();
 
 	@Override
 	public void onInitialize() {
-		BLACKLIST = MobsBeGoneConfig.loadBlacklist();
+		ServerLifecycleEvents.SERVER_STARTING.register(this::onServerStarting);
+	}
 
-		int count = 0;
-		for (boolean b : BLACKLIST) {
-			if (b) count++;
-		}
+	private void onServerStarting(MinecraftServer minecraftServer) {
+		BLACKLIST = MobsBeGoneConfig.loadBlacklist();
 
 		ServerEntityEvents.ENTITY_LOAD.register(this::onEntityLoad);
 		ServerTickEvents.END_SERVER_TICK.register(this::onEndServerTick);
 
-		LOGGER.info("MobsBeGone is up and running! Loaded {} blacklisted entities!", count);
+		LOGGER.info("MobsBeGone >> Up and running!");
 	}
 
 	private void onEntityLoad(Entity entity, ServerWorld world) {
@@ -56,6 +56,6 @@ public class MobsBeGone implements ModInitializer {
 
 	public static boolean isEntityBlacklisted(EntityType<?> entityType) {
 		int raw = Registries.ENTITY_TYPE.getRawId(entityType);
-		return BLACKLIST[raw + 1];
+		return (((BLACKLIST[raw >>> 6] >>> (raw & 63)) & 1L) != 0);
 	}
 }

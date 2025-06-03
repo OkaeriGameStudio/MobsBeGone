@@ -23,25 +23,35 @@ public class MobsBeGoneConfig {
 	private static final Type SET_STRING = new TypeToken<Set<String>>(){}.getType();
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-	public static boolean[] loadBlacklist() {
+	public static long[] loadBlacklist() {
 		Set<String> rawStrings = loadBlacklistStrings();
-		//int maxRegistryRaw = Registries.ENTITY_TYPE.stream().mapToInt(Registries.ENTITY_TYPE::getRawId).max().orElse(-1);
-		//boolean[] lookup = new boolean[maxRegistryRaw + 2];
-		boolean[] lookup = new boolean[1024 + 2];
+
+		int maxRegistryRaw = Registries.ENTITY_TYPE.stream().mapToInt(Registries.ENTITY_TYPE::getRawId).max().orElse(8192);
+		if (maxRegistryRaw == 8192) {
+			LOGGER.warn("MobsBeGone >> Error accessing the registry. Defaulting to 8192 total entities.");
+		}
+		int bitArraySize = (maxRegistryRaw + 1 + 63) >>> 6;
+		long[] lookup = new long[bitArraySize];
 
 		for (String s : rawStrings) {
 			try {
 				Identifier id = Identifier.of(s);
 				var type = Registries.ENTITY_TYPE.get(id);
 				int raw = Registries.ENTITY_TYPE.getRawId(type);
-				if (raw >= 0) {
-					lookup[raw + 1] = true;
+				if (raw >= 0 && raw < (bitArraySize << 6)) {
+					lookup[raw >>> 6] |= 1L << (raw & 63);
 				}
 			} catch (Exception ex) {
-				LOGGER.warn("Invalid entity ID in config: {}", s);
+				LOGGER.warn("MobsBeGone >> Invalid entity ID in config: {}", s);
 			}
 		}
 
+		int blacklistedEntities = 0;
+		for (long word : lookup) {
+			blacklistedEntities += Long.bitCount(word);
+		}
+
+		LOGGER.info("MobsBeGone >> Total Entity Types: {} | Bit Array Size: {} longs / {} bits | Blacklisted Entities: {}", maxRegistryRaw, bitArraySize, (bitArraySize << 6), blacklistedEntities);
 		return lookup;
 	}
 
@@ -49,7 +59,7 @@ public class MobsBeGoneConfig {
 		try {
 			if (Files.notExists(CONFIG_PATH)) {
 				try (InputStream in = getDefaultStream()) {
-					if (in == null) throw new IOException("Default config not found!");
+					if (in == null) throw new IOException("MobsBeGone >> Default config not found!");
 					Files.copy(in, CONFIG_PATH);
 				}
 			}
@@ -57,12 +67,16 @@ public class MobsBeGoneConfig {
 			return GSON.fromJson(content, SET_STRING);
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("MobsBeGone >> Failed to load or create blacklist config: {}", e.getMessage(), e);
 			try (InputStream in = getDefaultStream()) {
-				if (in == null) return Collections.emptySet();
+				if (in == null) {
+					LOGGER.warn("MobsBeGone >> Fallback default config not found either. Using empty blacklist.");
+					return Collections.emptySet();
+				}
+				LOGGER.warn("MobsBeGone >> Using fallback default config.");
 				return GSON.fromJson(new InputStreamReader(in), SET_STRING);
 			} catch (IOException inner) {
-				inner.printStackTrace();
+				LOGGER.error("MobsBeGone >> Failed to load fallback config: {}", inner.getMessage(), inner);
 				return Collections.emptySet();
 			}
 		}

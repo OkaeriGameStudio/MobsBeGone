@@ -25,8 +25,11 @@ Put this file in: `config/mobsbegone-blacklist.json` (The default config already
   "anothermod:somebaka"
 ]
 ```
-
 And that's it! Those mobs will never appear in your world again. 💣💥
+
+You can add any entity from either the base game, or any other mod you might be using!
+
+Please keep in mind that the **last entry of the list should NOT contain a trailing comma!**
 
 ## ⚠️ Disclaimer
 
@@ -35,7 +38,7 @@ This mod is provided **as-is**.
 You're free to use it, modify it, fork it, or yell at it lovingly.  
 No guarantees, no warranties — just vibes. ✨
 
-## ✨ Credit
+## ✨ Credits
 
 Made with love by **Okaeri Game Studio** 💜
 
