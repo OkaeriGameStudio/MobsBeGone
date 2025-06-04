@@ -45,7 +45,10 @@ public class MobsBeGone implements ModInitializer {
 	}
 
 	private void onEndServerTick(MinecraftServer minecraftServer) {
-		for (Entity entity : ENTITY_BUFFER) {
+		int size = ENTITY_BUFFER.size();
+		//noinspection ForLoopReplaceableByForEach
+		for (int i = 0; i < size; i++) {
+			Entity entity = ENTITY_BUFFER.get(i);
 			if (entity != null && !entity.isRemoved()) {
 				entity.discard();
 			}
