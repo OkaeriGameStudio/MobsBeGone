@@ -15,13 +15,12 @@ import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 public class MobsBeGone implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("mobsbegone");
 	private static long[] BLACKLIST;
-	public static final Set<Entity> TO_REMOVE = ConcurrentHashMap.newKeySet();
+	private static final ObjectArrayList<Entity> ENTITY_BUFFER = new ObjectArrayList<>(64);
 
 	@Override
 	public void onInitialize() {
@@ -40,18 +39,18 @@ public class MobsBeGone implements ModInitializer {
 	private void onEntityLoad(Entity entity, ServerWorld world) {
 		if (entity instanceof LivingEntity) {
 			if (isEntityBlacklisted(entity.getType())) {
-				TO_REMOVE.add(entity);
+				ENTITY_BUFFER.add(entity);
 			}
 		}
 	}
 
 	private void onEndServerTick(MinecraftServer minecraftServer) {
-		for (Entity toRemove : TO_REMOVE) {
-			if (!toRemove.isRemoved()) {
-				toRemove.discard();
+		for (Entity entity : ENTITY_BUFFER) {
+			if (entity != null && !entity.isRemoved()) {
+				entity.discard();
 			}
 		}
-		TO_REMOVE.clear();
+		ENTITY_BUFFER.clear();
 	}
 
 	public static boolean isEntityBlacklisted(EntityType<?> entityType) {
