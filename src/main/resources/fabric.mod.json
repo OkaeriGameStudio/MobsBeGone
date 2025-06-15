@@ -7,7 +7,7 @@
   "authors": ["Olivia", "EasyMochi"],
   "contact": {},
   "license": "All-Rights-Reserved",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
 	"main": [
 	  "moe.okaeri.mobsbegone.MobsBeGone"

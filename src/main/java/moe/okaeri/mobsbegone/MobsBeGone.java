@@ -1,5 +1,7 @@
 package moe.okaeri.mobsbegone;
 
+import moe.okaeri.mobsbegone.config.MobsBeGoneConfig;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -45,13 +47,9 @@ public class MobsBeGone implements ModInitializer {
 	}
 
 	private void onEndServerTick(MinecraftServer minecraftServer) {
-		int size = ENTITY_BUFFER.size();
-		//noinspection ForLoopReplaceableByForEach
-		for (int i = 0; i < size; i++) {
-			Entity entity = ENTITY_BUFFER.get(i);
-			if (entity != null && !entity.isRemoved()) {
-				entity.discard();
-			}
+		for (int i = ENTITY_BUFFER.size(); i-- > 0;) {
+			Entity e = ENTITY_BUFFER.get(i);
+			if (e != null && !e.isRemoved()) e.discard();
 		}
 		ENTITY_BUFFER.clear();
 	}
