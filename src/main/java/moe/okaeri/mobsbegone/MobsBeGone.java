@@ -14,6 +14,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 
+import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,10 @@ public class MobsBeGone implements ModInitializer {
 	private void onEntityLoad(Entity entity, ServerWorld world) {
 		if (entity instanceof LivingEntity) {
 			if (isEntityBlacklisted(entity.getType())) {
-				ENTITY_BUFFER.add(entity);
+                //TODO: Remove hard-coding and add unwanted dimensions to Blacklist file
+                if (entity.getWorld().getRegistryKey() == World.OVERWORLD) {
+                    ENTITY_BUFFER.add(entity);
+                }
 			}
 		}
 	}
@@ -49,7 +53,10 @@ public class MobsBeGone implements ModInitializer {
 	private void onEndServerTick(MinecraftServer minecraftServer) {
 		for (int i = ENTITY_BUFFER.size(); i-- > 0;) {
 			Entity e = ENTITY_BUFFER.get(i);
-			if (e != null && !e.isRemoved()) e.discard();
+			if (e != null && !e.isRemoved()) {
+                e.discard();
+                // LOGGER.info("Event watcher discarded" + e.getType());
+            }
 		}
 		ENTITY_BUFFER.clear();
 	}
