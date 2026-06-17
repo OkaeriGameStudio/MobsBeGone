@@ -21,7 +21,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 public class MobsBeGone implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("mobsbegone");
-	private static long[] BLACKLIST;
+	private static long[] blacklist = new long[0];
 	private static final ObjectArrayList<Entity> ENTITY_BUFFER = new ObjectArrayList<>(64);
 
 	@Override
@@ -30,7 +30,7 @@ public class MobsBeGone implements ModInitializer {
 	}
 
 	private void onServerStarting(MinecraftServer minecraftServer) {
-		BLACKLIST = MobsBeGoneConfig.loadBlacklist();
+		blacklist = MobsBeGoneConfig.loadBlacklist();
 
 		ServerEntityEvents.ENTITY_LOAD.register(this::onEntityLoad);
 		ServerTickEvents.END_SERVER_TICK.register(this::onEndServerTick);
@@ -39,10 +39,8 @@ public class MobsBeGone implements ModInitializer {
 	}
 
 	private void onEntityLoad(Entity entity, ServerWorld world) {
-		if (entity instanceof LivingEntity) {
-			if (isEntityBlacklisted(entity.getType())) {
-				ENTITY_BUFFER.add(entity);
-			}
+		if (entity instanceof LivingEntity && isEntityBlacklisted(entity.getType())) {
+			ENTITY_BUFFER.add(entity);
 		}
 	}
 
@@ -56,6 +54,10 @@ public class MobsBeGone implements ModInitializer {
 
 	public static boolean isEntityBlacklisted(EntityType<?> entityType) {
 		int raw = Registries.ENTITY_TYPE.getRawId(entityType);
-		return (((BLACKLIST[raw >>> 6] >>> (raw & 63)) & 1L) != 0);
+		int idx = raw >>> 6;
+		if (idx < 0 || idx >= blacklist.length) {
+			return false;
+		}
+		return (((blacklist[idx] >>> (raw & 63)) & 1L) != 0);
 	}
 }
