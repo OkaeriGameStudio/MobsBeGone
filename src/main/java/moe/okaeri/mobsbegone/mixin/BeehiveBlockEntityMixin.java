@@ -18,11 +18,10 @@ import java.util.List;
 public class BeehiveBlockEntityMixin {
 
 	private BeehiveBlockEntityMixin() {
-		// Privado para evitar la instanciación de la clase Mixin
 	}
 
 	@Inject(method = "releaseBee", at = @At("HEAD"), cancellable = true)
-	private static void onReleaseBee(World world, BlockPos pos, BlockState state, Object bee, List<Entity> entities, Object beeState, BlockPos flowerPos, CallbackInfoReturnable<Boolean> cir) {
+	private static void onReleaseBee(World world, BlockPos pos, BlockState state, BeehiveBlockEntity.BeeData bee, List<Entity> entities, BeehiveBlockEntity.BeeState beeState, BlockPos flowerPos, CallbackInfoReturnable<Boolean> cir) {
 		if (MobsBeGone.isEntityBlacklisted(EntityType.BEE)) {
 			cir.setReturnValue(true);
 			cir.cancel();

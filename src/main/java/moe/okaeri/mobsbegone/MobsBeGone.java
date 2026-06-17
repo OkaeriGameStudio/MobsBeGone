@@ -56,9 +56,7 @@ public class MobsBeGone implements ModInitializer {
   public static boolean isEntityBlacklisted(EntityType<?> entityType) {
     int raw = Registries.ENTITY_TYPE.getRawId(entityType);
     int idx = raw >>> 6;
-    if (idx < 0 || idx >= blacklist.length) {
-      return false;
-    }
+    if (idx >= blacklist.length)  return false;
     return (((blacklist[idx] >>> (raw & 63)) & 1L) != 0);
   }
 }
