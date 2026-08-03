@@ -1,4 +1,4 @@
-name: Release
+name: Build and Release
 
 on:
   push:
@@ -7,19 +7,20 @@ on:
     paths:
       - gradle.properties
 
+  # Useful for publishing the current version once after installing this workflow.
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: release
+  group: publish-release
   cancel-in-progress: false
 
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -27,81 +28,104 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check version change
+        id: version
+        shell: bash
+        run: |
+          NEW_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r[:space:]')"
+
+          if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid mod_version: '$NEW_VERSION'"
+            exit 1
+          fi
+
+          SHOULD_PUBLISH=true
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            OLD_VERSION="$(
+              git show "${{ github.event.before }}:gradle.properties" 2>/dev/null |
+              sed -n 's/^mod_version=//p' |
+              tr -d '\r[:space:]'
+            )"
+
+            if [[ "$NEW_VERSION" == "$OLD_VERSION" ]]; then
+              SHOULD_PUBLISH=false
+              echo "gradle.properties changed, but mod_version did not."
+            fi
+          fi
+
+          echo "value=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "publish=$SHOULD_PUBLISH" >> "$GITHUB_OUTPUT"
+
       - name: Set up Java 21
+        if: steps.version.outputs.publish == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle
+        if: steps.version.outputs.publish == 'true'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Make Gradle executable
+        if: steps.version.outputs.publish == 'true'
         run: chmod +x gradlew
 
-      - name: Read mod version
-        id: version
-        shell: bash
-        run: |
-          VERSION="$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r[:space:]')"
-
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid mod_version: '$VERSION'"
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Check whether release exists
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        shell: bash
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists; nothing to publish."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build
-        if: steps.release.outputs.exists == 'false'
+        if: steps.version.outputs.publish == 'true'
         run: ./gradlew clean build --no-daemon --stacktrace
 
-      - name: Find release JAR
-        if: steps.release.outputs.exists == 'false'
-        id: jar
+      - name: Generate changelog
+        if: steps.version.outputs.publish == 'true'
         shell: bash
         run: |
-          mapfile -t JARS < <(
-            find build/libs \
-              -maxdepth 1 \
-              -type f \
-              -name "*.jar" \
-              ! -name "*-sources.jar" \
-              ! -name "*-dev.jar"
-          )
+          PREVIOUS_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 
-          if [[ "${#JARS[@]}" -ne 1 ]]; then
-            echo "Expected exactly one release JAR, found ${#JARS[@]}:"
-            printf '%s\n' "${JARS[@]}"
-            exit 1
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            git log "$PREVIOUS_TAG..HEAD" \
+              --pretty=format:'- %s (`%h`)' > RELEASE_NOTES.md
+          else
+            git log \
+              --pretty=format:'- %s (`%h`)' > RELEASE_NOTES.md
           fi
 
-          echo "path=${JARS[0]}" >> "$GITHUB_OUTPUT"
+          if [[ ! -s RELEASE_NOTES.md ]]; then
+            echo "- MobsBeGone ${{ steps.version.outputs.value }}" \
+              > RELEASE_NOTES.md
+          fi
 
-      - name: Create tag and GitHub release
-        if: steps.release.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
-          JAR: ${{ steps.jar.outputs.path }}
-        run: |
-          gh release create "$TAG" "$JAR" \
-            --target "$GITHUB_SHA" \
-            --title "MobsBeGone $VERSION" \
-            --generate-notes
+      - name: Publish everywhere
+        if: steps.version.outputs.publish == 'true'
+        uses: Kira-NT/mc-publish@v3
+        with:
+          files: build/libs/MobsBeGone-${{ steps.version.outputs.value }}.jar
+
+          name: MobsBeGone ${{ steps.version.outputs.value }}
+          version: ${{ steps.version.outputs.value }}
+          version-type: release
+          changelog-file: RELEASE_NOTES.md
+
+          loaders: fabric
+          game-versions: 1.21.1
+          game-version-filter: none
+          environment: server | singleplayer
+          java: 21
+
+          dependencies: |
+            fabric-api(required){modrinth:P7dR8mSH}{curseforge:306612}
+
+          modrinth-id: hXvXSxxg
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          curseforge-id: 1302442
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          github-tag: v${{ steps.version.outputs.value }}
+          github-commitish: ${{ github.sha }}
+          github-generate-changelog: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          retry-attempts: 3
+          retry-delay: 10000
+          fail-mode: fail
