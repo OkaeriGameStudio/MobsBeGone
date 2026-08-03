@@ -4,8 +4,7 @@
   "package": "moe.okaeri.mobsbegone.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-	"ServerWorldMixin",
-	"BeehiveBlockEntityMixin"
+	"ServerWorldMixin"
   ],
   "injectors": {
 	"defaultRequire": 1
