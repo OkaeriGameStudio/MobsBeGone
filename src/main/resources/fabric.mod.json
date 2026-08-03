@@ -6,7 +6,7 @@
   "description": "MobsBeGone let you control which entity should or shouldn't spawn in the world.",
   "authors": ["Olivia", "EasyMochi"],
   "contact": {},
-  "license": "All-Rights-Reserved",
+  "license": "MIT",
   "environment": "*",
   "entrypoints": {
 	"main": [
